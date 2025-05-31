@@ -60,9 +60,14 @@ export default function StockMain() {
           console.log("🔄 처리할 전체 데이터:", allData);
 
           setStocks((prev) => {
-            // 현재 종목 목록을 복사 (빈 배열일 수도 있음)
             const updatedStocks = [...prev];
             let updateCount = 0;
+            const currentTime = new Date();
+            const timeString = currentTime.toLocaleTimeString("ko-KR", {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            });
 
             allData.forEach((quote, index) => {
               console.log(`📈 처리 중인 데이터 [${index}]:`, quote);
@@ -74,56 +79,86 @@ export default function StockMain() {
               }
 
               const idx = updatedStocks.findIndex((s) => s.name === quote.symbol);
-              console.log(`🔍 ${quote.symbol} 종목 인덱스: ${idx}`);
 
               // 가격 필드 확인 (주식: c, 코인: p 또는 price)
               const price = quote.isStock 
                 ? parseFloat(quote.c || quote.price) 
                 : parseFloat(quote.p || quote.price);
               
-              console.log(`💰 ${quote.symbol} - 주식여부: ${quote.isStock}, 가격: ${price}`);
-
               // 가격이 유효한지 확인
               if (isNaN(price)) {
                 console.warn("❌ 유효하지 않은 가격 데이터:", quote);
                 return;
               }
 
-              const time = new Date().toLocaleTimeString("ko-KR", {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-              });
+              // 주식의 경우 추가 데이터 구성
+              const stockData = quote.isStock ? {
+                price,
+                open: parseFloat(quote.o) || price,      // 시가
+                high: parseFloat(quote.h) || price,      // 고가
+                low: parseFloat(quote.l) || price,       // 저가
+                prevClose: parseFloat(quote.pc) || price, // 전일종가
+                change: parseFloat(quote.d) || 0,        // 변화량
+                changePercent: parseFloat(quote.dp) || 0  // 변화율
+              } : {
+                price
+              };
 
               if (idx !== -1) {
-                // 기존 종목 업데이트
-                updatedStocks[idx] = {
-                  ...updatedStocks[idx],
-                  data: [
-                    ...updatedStocks[idx].data,
-                    { time, price },
-                  ].slice(-30), // 최근 30개 데이터만 유지
-                  isStock: quote.isStock,
-                  lastUpdate: new Date().toLocaleTimeString("ko-KR")
-                };
+                // 기존 종목 업데이트 - 마지막 데이터와 가격이 다를 때만 추가
+                const lastData = updatedStocks[idx].data[updatedStocks[idx].data.length - 1];
+                const shouldUpdate = !lastData || lastData.price !== price;
                 
-                updateCount++;
-                console.log(`✅ ${quote.symbol} 업데이트 완료`);
+                if (shouldUpdate) {
+                  updatedStocks[idx] = {
+                    ...updatedStocks[idx],
+                    data: [
+                      ...updatedStocks[idx].data,
+                      { time: timeString, ...stockData },
+                    ].slice(-50), // 최근 50개 데이터 유지
+                    isStock: quote.isStock,
+                    lastUpdate: timeString,
+                    // 주식의 경우 현재 상태 정보 추가
+                    ...(quote.isStock && {
+                      currentPrice: price,
+                      change: stockData.change,
+                      changePercent: stockData.changePercent,
+                      high: stockData.high,
+                      low: stockData.low,
+                      open: stockData.open,
+                      prevClose: stockData.prevClose
+                    })
+                  };
+                  updateCount++;
+                  console.log(`✅ ${quote.symbol} 업데이트 완료 - 가격: ${price}, 변화: ${stockData.change || 'N/A'}`);
+                }
               } else {
                 // 새로운 종목 동적 추가
                 console.log(`➕ 새 종목 추가: ${quote.symbol} (${quote.isStock ? '주식' : '코인'})`);
                 updatedStocks.push({
                   name: quote.symbol,
-                  data: [{ time, price }],
+                  data: [{ time: timeString, ...stockData }],
                   isStock: quote.isStock,
-                  lastUpdate: new Date().toLocaleTimeString("ko-KR")
+                  lastUpdate: timeString,
+                  // 주식의 경우 현재 상태 정보 추가
+                  ...(quote.isStock && {
+                    currentPrice: price,
+                    change: stockData.change,
+                    changePercent: stockData.changePercent,
+                    high: stockData.high,
+                    low: stockData.low,
+                    open: stockData.open,
+                    prevClose: stockData.prevClose
+                  })
                 });
                 updateCount++;
               }
             });
 
             console.log(`🎯 총 ${updateCount}개 종목 업데이트됨, 전체: ${updatedStocks.length}개`);
-            return updatedStocks;
+            
+            // 업데이트된 종목이 있을 때만 상태 변경
+            return updateCount > 0 ? updatedStocks : prev;
           });
         } else {
           console.warn("⚠️ 알 수 없는 메시지 형태:", message);
@@ -201,77 +236,121 @@ export default function StockMain() {
         </div>
 
         {/* ✅ 코인 차트 */}
-        <h2 className="text-lg font-semibold mb-2">🪙 코인 차트</h2>
+        <h2 className="text-lg font-semibold mb-2">🪙 코인 차트 ({coinStocks.length}개)</h2>
         <div className="grid grid-cols-2 gap-4 mb-8">
           {coinStocks.map((stock, idx) => (
             <div
-              key={`coin-${idx}`}
+              key={stock.name}
               className="border p-2 rounded shadow bg-white flex flex-col items-center"
             >
               <h3 className="text-sm font-semibold mb-1">{stock.name}</h3>
               {stock.data.length > 0 ? (
                 <LineChart width={300} height={150} data={stock.data}>
-                  <XAxis dataKey="time" />
-                  <YAxis domain={["dataMin - 1", "dataMax + 1"]} />
+                  <XAxis 
+                    dataKey="time" 
+                    tick={{ fontSize: 10 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    domain={["dataMin - 1", "dataMax + 1"]} 
+                    tick={{ fontSize: 10 }}
+                    width={60}
+                  />
                   <CartesianGrid stroke="#ccc" />
-                  <Tooltip />
+                  <Tooltip 
+                    formatter={(value) => [value.toLocaleString(), '가격']}
+                    labelFormatter={(label) => `시간: ${label}`}
+                  />
                   <Line
                     type="monotone"
                     dataKey="price"
                     stroke="#8884d8"
                     dot={false}
                     strokeWidth={2}
+                    connectNulls
                   />
                 </LineChart>
               ) : (
                 <div className="w-[300px] h-[150px] flex items-center justify-center text-gray-500">
-                  데이터 없음
+                  데이터 로딩 중...
                 </div>
               )}
               <div className="mt-1 text-xs text-gray-700">
                 <span className="font-semibold">현재가:</span>{" "}
                 {stock.data.length ? stock.data[stock.data.length - 1].price.toLocaleString() : "-"}
-                {stock.lastUpdate && (
-                  <span className="ml-2 text-gray-500">({stock.lastUpdate})</span>
-                )}
+                <span className="ml-2 text-gray-500">
+                  ({stock.data.length}개 포인트)
+                </span>
               </div>
             </div>
           ))}
         </div>
 
         {/* ✅ 주식 차트 */}
-        <h2 className="text-lg font-semibold mb-2">📈 주식 차트</h2>
+        <h2 className="text-lg font-semibold mb-2">📈 주식 차트 ({stockStocks.length}개)</h2>
         <div className="grid grid-cols-2 gap-4">
           {stockStocks.map((stock, idx) => (
             <div
-              key={`stock-${idx}`}
+              key={stock.name}
               className="border p-2 rounded shadow bg-white flex flex-col items-center"
             >
               <h3 className="text-sm font-semibold mb-1">{stock.name}</h3>
               {stock.data.length > 0 ? (
                 <LineChart width={300} height={150} data={stock.data}>
-                  <XAxis dataKey="time" />
-                  <YAxis domain={["dataMin - 1", "dataMax + 1"]} />
+                  <XAxis 
+                    dataKey="time" 
+                    tick={{ fontSize: 10 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    domain={["dataMin - 1", "dataMax + 1"]} 
+                    tick={{ fontSize: 10 }}
+                    width={60}
+                  />
                   <CartesianGrid stroke="#ccc" />
-                  <Tooltip />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      value.toLocaleString(), 
+                      name === 'price' ? '현재가' : name
+                    ]}
+                    labelFormatter={(label) => `시간: ${label}`}
+                  />
                   <Line
                     type="monotone"
                     dataKey="price"
                     stroke="#82ca9d"
                     dot={false}
                     strokeWidth={2}
+                    connectNulls
                   />
                 </LineChart>
               ) : (
                 <div className="w-[300px] h-[150px] flex items-center justify-center text-gray-500">
-                  데이터 없음
+                  데이터 로딩 중...
                 </div>
               )}
-              <div className="mt-1 text-xs text-gray-700">
-                <span className="font-semibold">현재가:</span>{" "}
-                {stock.data.length ? stock.data[stock.data.length - 1].price.toLocaleString() : "-"}
-                {stock.lastUpdate && (
-                  <span className="ml-2 text-gray-500">({stock.lastUpdate})</span>
+              <div className="mt-1 text-xs text-gray-700 space-y-1">
+                <div>
+                  <span className="font-semibold">현재가:</span>{" "}
+                  {stock.data.length ? stock.data[stock.data.length - 1].price.toLocaleString() : "-"}
+                  <span className="ml-2 text-gray-500">
+                    ({stock.data.length}개 포인트)
+                  </span>
+                </div>
+                {stock.isStock && stock.change !== undefined && (
+                  <div className="flex gap-2 text-xs">
+                    <span className={`${stock.change >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                      {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}
+                    </span>
+                    <span className={`${stock.changePercent >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                      ({stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%)
+                    </span>
+                  </div>
+                )}
+                {stock.isStock && stock.high !== undefined && (
+                  <div className="text-xs text-gray-600">
+                    H: {stock.high.toLocaleString()} L: {stock.low.toLocaleString()}
+                  </div>
                 )}
               </div>
             </div>
