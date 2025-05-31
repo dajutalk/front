@@ -1,7 +1,8 @@
 import React from 'react';
 
-const TabNavigation = ({ activeTab, setActiveTab }) => {
-  const tabs = ['종합', '토론', '뉴스·공시', '시세', '재무', '리서치'];
+const TabNavigation = ({ activeTab, setActiveTab, showChart = false }) => {
+  const baseTabs = ['종합', '토론', '뉴스·공시', '시세', '재무', '리서치'];
+  const tabs = showChart ? ['차트', ...baseTabs] : baseTabs;
 
   return (
     <div className="border-b bg-white">

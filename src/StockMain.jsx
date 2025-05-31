@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 
 export default function StockMain() {
@@ -7,20 +8,13 @@ export default function StockMain() {
   const [searchTerm, setSearchTerm] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("연결 중...");
   const [wsRef, setWsRef] = useState(null);
+  const navigate = useNavigate();
 
   const handleSelectStock = (selectedStockName) => {
     console.log("선택된 종목:", selectedStockName);
-
-    fetch("http://localhost:8000/api/selectStock", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stockName: selectedStockName }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("서버 응답:", data);
-      })
-      .catch((err) => console.error("서버 전송 에러:", err));
+    
+    // 종목 상세 페이지로 이동
+    navigate(`/stock/${selectedStockName}`);
   };
 
   // 최신 데이터 요청 함수
