@@ -63,27 +63,62 @@ export default function StockDetail() {
               username: data.data.nickname,
               timestamp: data.data.timestamp || new Date().toISOString(),
               userId: data.data.user_id,
-              isOwn: data.data.user_id === userId
+              isOwn: data.data.user_id === userId,
+              // 중복 방지를 위한 고유 ID 생성
+              messageId: `${data.data.user_id}_${data.data.timestamp || Date.now()}_${data.data.message.slice(0, 10)}`
             };
-            setMessages(prev => [...prev.slice(-99), newMessage]);
+            
+            setMessages(prev => {
+              // 같은 메시지 ID가 이미 있는지 확인
+              const isDuplicate = prev.some(msg => msg.messageId === newMessage.messageId);
+              if (isDuplicate) {
+                console.log(`⚠️ [${symbol}] 중복 메시지 감지, 무시:`, newMessage.content);
+                return prev;
+              }
+              return [...prev.slice(-99), newMessage];
+            });
             
           } else if (data.type === 'user_joined') {
             const joinMessage = {
               content: data.data.message,
               username: "시스템",
               timestamp: new Date().toISOString(),
-              isSystem: true
+              isSystem: true,
+              messageId: `system_join_${Date.now()}_${data.data.message}`
             };
-            setMessages(prev => [...prev.slice(-99), joinMessage]);
+            
+            setMessages(prev => {
+              // 시스템 메시지 중복 방지
+              const isDuplicate = prev.some(msg => 
+                msg.isSystem && msg.content === joinMessage.content && 
+                Math.abs(new Date(msg.timestamp) - new Date(joinMessage.timestamp)) < 1000
+              );
+              if (isDuplicate) {
+                return prev;
+              }
+              return [...prev.slice(-99), joinMessage];
+            });
             
           } else if (data.type === 'user_left') {
             const leaveMessage = {
               content: data.data.message,
               username: "시스템", 
               timestamp: new Date().toISOString(),
-              isSystem: true
+              isSystem: true,
+              messageId: `system_leave_${Date.now()}_${data.data.message}`
             };
-            setMessages(prev => [...prev.slice(-99), leaveMessage]);
+            
+            setMessages(prev => {
+              // 시스템 메시지 중복 방지
+              const isDuplicate = prev.some(msg => 
+                msg.isSystem && msg.content === leaveMessage.content && 
+                Math.abs(new Date(msg.timestamp) - new Date(leaveMessage.timestamp)) < 1000
+              );
+              if (isDuplicate) {
+                return prev;
+              }
+              return [...prev.slice(-99), leaveMessage];
+            });
           }
         } catch (error) {
           console.error(`❌ [${symbol}] 채팅 메시지 파싱 에러:`, error);
@@ -129,12 +164,13 @@ export default function StockDetail() {
         message: content.trim()
       };
       
+      // 서버로만 전송하고 로컬에는 추가하지 않음 (서버에서 받은 메시지로 표시)
       chatWs.send(JSON.stringify(messageData));
       console.log(`📤 [${symbol}] 메시지 전송됨:`, messageData);
     } else {
       console.warn(`⚠️ [${symbol}] WebSocket이 연결되지 않음`);
       
-      // 연결이 안 된 경우 임시로 로컬 메시지 추가
+      // 연결이 안 된 경우에만 임시로 로컬 메시지 추가
       const fallbackMessage = {
         content: content + " (전송 실패 - 연결을 확인해주세요)",
         username: "나",
@@ -249,111 +285,101 @@ export default function StockDetail() {
               try {
                 const message = JSON.parse(event.data);
                 console.log(`🔥 [${symbol}] 개별 WebSocket 파싱된 메시지:`, message);
-                console.log(`📋 [${symbol}] 메시지 타입:`, message.type);
                 
-                // 모든 가능한 데이터 구조 확인
-                if (message.data) {
-                  console.log(`📦 [${symbol}] message.data:`, message.data);
-                  // 처리 로직...
-                } else if (message.type === "market_update") {
-                  console.log(`📦 [${symbol}] market_update:`, message);
-                  // 처리 로직...
-                } else {
-                  console.log(`📦 [${symbol}] 직접 메시지 처리:`, message);
-                  // 처리 로직...
-                }
-                
-                // 실제 데이터 처리는 기존 로직 사용하되 더 많은 로깅 추가
-                if (message.data) {
+                // 메시지 타입별 처리
+                if (message.type === 'crypto_update' && message.data) {
+                  console.log(`💰 [${symbol}] 암호화폐 업데이트 처리`);
                   const data = message.data;
                   
-                  // 가격 필드를 다양한 형태로 시도
-                  const currentPrice = parseFloat(
-                    data.current_price || 
-                    data.price || 
-                    data.c || 
-                    data.p
-                  );
-                  
-                  console.log(`💰 [${symbol}] 추출된 가격:`, {
-                    current_price: data.current_price,
-                    price: data.price,
-                    c: data.c,
-                    p: data.p,
-                    finalPrice: currentPrice
-                  });
-                  
+                  const currentPrice = parseFloat(data.current_price);
                   if (!isNaN(currentPrice)) {
                     const newStockData = {
                       symbol: data.symbol || symbol,
                       name: data.symbol || symbol,
                       currentPrice: currentPrice,
-                      change: parseFloat(data.change || data.d) || 0,
-                      changePercent: parseFloat(data.changePercent || data.dp) || 0,
-                      isStock: isStock
+                      change: parseFloat(data.change) || 0,
+                      changePercent: parseFloat(data.changePercent) || 0,
+                      isStock: false
                     };
                     
-                    console.log(`📊 [${symbol}] 새 주식 데이터 설정:`, newStockData);
-                    setStockData(newStockData);
+                    setStockData(prev => {
+                      // 가격이 실제로 변경된 경우에만 업데이트
+                      if (!prev || prev.currentPrice !== currentPrice) {
+                        console.log(`📊 [${symbol}] 암호화폐 데이터 업데이트:`, newStockData);
+                        return newStockData;
+                      }
+                      return prev;
+                    });
 
                     // 히스토리 데이터 처리
                     if (data.history && data.history.length > 0) {
-                      console.log(`📈 [${symbol}] 히스토리 데이터 발견:`, data.history.length, '개');
-                      const historyData = data.history.map((h, index) => ({
-                        time: h.time ? h.time.toString() : index.toString(),
+                      const historyData = data.history.map(h => ({
+                        time: h.time.toString(),
                         price: parseFloat(h.price)
                       }));
-                      setPriceHistory(historyData);
-                      console.log(`✅ [${symbol}] 히스토리 데이터 설정 완료:`, historyData.length, '개');
-                    } else {
-                      console.log(`⚡ [${symbol}] 히스토리 없음, 실시간 데이터로 차트 구성`);
-                      // 히스토리가 없으면 현재 가격으로 초기 데이터 생성
                       setPriceHistory(prev => {
-                        console.log(`📝 [${symbol}] 기존 차트 데이터:`, prev.length, '개');
-                        
-                        if (prev.length === 0) {
-                          // 첫 번째 데이터 포인트 생성
+                        // 히스토리 길이가 다른 경우에만 업데이트
+                        if (prev.length !== historyData.length) {
+                          console.log(`📈 [${symbol}] 히스토리 데이터 업데이트:`, historyData.length, '개');
+                          return historyData;
+                        }
+                        return prev;
+                      });
+                    }
+                  }
+                  
+                } else if (message.type === 'stock_update' && message.data) {
+                  console.log(`📈 [${symbol}] 주식 업데이트 처리`);
+                  
+                  // 주식 데이터는 배열 형태로 오므로 첫 번째 항목 사용
+                  const stockItem = Array.isArray(message.data) ? message.data[0] : message.data;
+                  
+                  if (stockItem) {
+                    const currentPrice = parseFloat(stockItem.p || stockItem.price || stockItem.c);
+                    
+                    if (!isNaN(currentPrice)) {
+                      const newStockData = {
+                        symbol: stockItem.s || stockItem.symbol || symbol,
+                        name: stockItem.s || stockItem.symbol || symbol,
+                        currentPrice: currentPrice,
+                        change: parseFloat(stockItem.change || stockItem.d) || 0,
+                        changePercent: parseFloat(stockItem.changePercent || stockItem.dp) || 0,
+                        isStock: true
+                      };
+                      
+                      setStockData(prev => {
+                        // 가격이 실제로 변경된 경우에만 업데이트
+                        if (!prev || prev.currentPrice !== currentPrice) {
+                          console.log(`📊 [${symbol}] 주식 데이터 업데이트:`, newStockData);
+                          return newStockData;
+                        }
+                        return prev;
+                      });
+
+                      // 실시간 가격 차트에 새 데이터 포인트 추가
+                      setPriceHistory(prev => {
+                        const lastPrice = prev[prev.length - 1]?.price;
+                        if (lastPrice !== currentPrice) {
                           const timeString = new Date().toLocaleTimeString("ko-KR", {
                             hour: '2-digit',
                             minute: '2-digit',
                             second: '2-digit'
                           });
-                          const newData = [{ time: timeString, price: currentPrice }];
-                          console.log(`🆕 [${symbol}] 첫 번째 차트 데이터 생성:`, newData);
+                          const newData = [...prev, { time: timeString, price: currentPrice }].slice(-50);
+                          console.log(`➕ [${symbol}] 새 주식 데이터 포인트 추가`);
                           return newData;
-                        } else {
-                          // 기존 데이터에 새 포인트 추가
-                          const lastPrice = prev[prev.length - 1]?.price;
-                          console.log(`🔄 [${symbol}] 마지막 가격: ${lastPrice}, 새 가격: ${currentPrice}`);
-                          
-                          if (lastPrice !== currentPrice) {
-                            const timeString = new Date().toLocaleTimeString("ko-KR", {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit'
-                            });
-                            const newData = [...prev, { time: timeString, price: currentPrice }].slice(-100);
-                            console.log(`➕ [${symbol}] 새 데이터 포인트 추가, 총 ${newData.length}개`);
-                            return newData;
-                          } else {
-                            console.log(`⏭️ [${symbol}] 가격 변화 없음, 차트 업데이트 생략`);
-                          }
                         }
                         return prev;
                       });
+                    } else {
+                      console.error(`❌ [${symbol}] 주식 가격 파싱 실패:`, stockItem);
                     }
-                  } else {
-                    console.error(`❌ [${symbol}] 유효하지 않은 가격 데이터:`, {
-                      current_price: data.current_price,
-                      price: data.price,
-                      c: data.c,
-                      p: data.p,
-                      parsedPrice: currentPrice
-                    });
                   }
+                  
                 } else {
-                  console.warn(`⚠️ [${symbol}] 처리할 데이터 없음. 원본 메시지:`, message);
+                  console.warn(`⚠️ [${symbol}] 알 수 없는 메시지 타입:`, message.type);
                 }
+                
               } catch (error) {
                 console.error(`💥 [${symbol}] 데이터 파싱 에러:`, error);
                 console.error(`💥 [${symbol}] 원본 데이터:`, event.data);

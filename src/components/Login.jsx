@@ -10,10 +10,55 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // 카카오 로그인 완료 후 처리
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginStatus = urlParams.get('login');
+    const errorStatus = urlParams.get('error');
+    
+    if (loginStatus === 'success') {
+      console.log('✅ 카카오 로그인 성공 감지');
+      
+      // URL 파라미터 제거
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // 로그인 전 페이지로 돌아가거나 대시보드로 이동
+      const beforeLogin = localStorage.getItem('beforeKakaoLogin');
+      localStorage.removeItem('beforeKakaoLogin');
+      
+      if (beforeLogin && beforeLogin !== '/login') {
+        navigate(beforeLogin);
+      } else {
+        navigate('/dashboard');
+      }
+      
+      // 인증 상태 업데이트
+      window.location.reload();
+      
+    } else if (errorStatus === 'kakao_failed') {
+      console.error('❌ 카카오 로그인 실패 감지');
+      setError('카카오 로그인에 실패했습니다. 다시 시도해주세요.');
+      
+      // URL 파라미터 제거
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [navigate]);
+
+  const handleKakaoLogin = () => {
+    console.log('🥕 카카오 로그인 시작...');
+    
+    // 현재 페이지 URL을 저장 (로그인 후 돌아올 위치)
+    localStorage.setItem('beforeKakaoLogin', window.location.pathname);
+    
+    // 카카오 로그인 시작
+    window.location.href = 'http://localhost:8000/auth/kakao/redirect';
+  };
+
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -54,72 +99,6 @@ const Login = () => {
     } catch (error) {
       console.error('🚨 로그인 네트워크 에러:', error);
       setError('네트워크 오류가 발생했습니다. 서버 연결을 확인해주세요.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleKakaoLogin = () => {
-    console.log('🥕 카카오 로그인 시도');
-    // 백엔드 API 문서에 맞는 엔드포인트로 리다이렉트
-    window.location.href = 'http://localhost:8000/auth/kakao/redirect';
-  };
-
-  // 카카오 로그인 콜백 처리 (페이지 로드 시 URL 파라미터 확인)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state');
-    
-    if (code) {
-      console.log('🥕 카카오 로그인 콜백 감지:', { code, state });
-      handleKakaoCallback(code, state);
-    }
-  }, []);
-
-  const handleKakaoCallback = async (code, state) => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      console.log('🥕 카카오 콜백 처리 중...', { code, state });
-      
-      // 백엔드의 카카오 콜백 엔드포인트로 POST 요청
-      const response = await fetch('http://localhost:8000/auth/kakao/callback', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: code,
-          state: state
-        })
-      });
-
-      console.log('📡 카카오 콜백 응답 상태:', response.status);
-
-      if (response.ok) {
-        const userData = await response.json();
-        console.log('✅ 카카오 로그인 성공:', userData);
-        
-        // 로그인 성공 시 대시보드로 이동
-        navigate('/dashboard');
-        window.location.reload();
-      } else {
-        const errorData = await response.json();
-        console.error('❌ 카카오 로그인 실패:', errorData);
-        setError(errorData.detail || '카카오 로그인에 실패했습니다.');
-        
-        // URL에서 파라미터 제거
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    } catch (error) {
-      console.error('🚨 카카오 로그인 에러:', error);
-      setError('카카오 로그인 중 오류가 발생했습니다.');
-      
-      // URL에서 파라미터 제거
-      window.history.replaceState({}, document.title, window.location.pathname);
     } finally {
       setIsLoading(false);
     }
@@ -188,19 +167,22 @@ const Login = () => {
               {isLoading ? '로그인 중...' : '로그인'}
             </button>
             
+            {/* 카카오 로그인 버튼 */}
             <button
               type="button"
               onClick={handleKakaoLogin}
               disabled={isLoading}
-              className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-yellow-300 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50"
+              className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 text-sm font-medium rounded-md text-black bg-yellow-400 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 transition-colors"
+              style={{
+                backgroundColor: '#FEE500',
+                color: '#000'
+              }}
             >
               {isLoading ? (
                 <span>처리 중...</span>
               ) : (
                 <>
-                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.09 0 2.14-.18 3.12-.5-.55-.83-.87-1.82-.87-2.88 0-2.93 2.38-5.31 5.31-5.31.34 0 .68.03 1.01.08C21.48 8.89 17.09 2 12 2z"/>
-                  </svg>
+                  <span className="text-lg mr-2">🟡</span>
                   카카오로 로그인
                 </>
               )}

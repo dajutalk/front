@@ -15,16 +15,6 @@ function App() {
       try {
         console.log('🔍 인증 상태 확인 중...');
         
-        // 카카오 로그인 콜백인지 확인
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        if (code) {
-          console.log('🥕 카카오 로그인 콜백 감지, 인증 확인 생략');
-          setIsAuthenticated(false); // 로그인 페이지에서 콜백 처리하도록
-          setIsLoading(false);
-          return;
-        }
-        
         // 네트워크 연결 먼저 확인
         const healthResponse = await fetch('http://localhost:8000/health', {
           credentials: 'include'
