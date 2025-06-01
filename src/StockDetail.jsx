@@ -402,6 +402,30 @@ export default function StockDetail() {
     navigate('/');
   };
 
+  // 로그아웃 함수
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        console.log('✅ 로그아웃 성공');
+        navigate('/login');
+        window.location.reload();
+      } else {
+        console.error('❌ 로그아웃 실패');
+        navigate('/login');
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('🚨 로그아웃 에러:', error);
+      navigate('/login');
+      window.location.reload();
+    }
+  };
+
   if (!stockData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -431,12 +455,22 @@ export default function StockDetail() {
             >
               ← 전체 목록
             </button>
-            <div className={`px-3 py-1 rounded text-sm ${
-              connectionStatus === "연결됨" ? "bg-green-100 text-green-800" :
-              connectionStatus === "연결 중..." ? "bg-yellow-100 text-yellow-800" :
-              "bg-red-100 text-red-800"
-            }`}>
-              {connectionStatus}
+            
+            <div className="flex items-center gap-4">
+              <div className={`px-3 py-1 rounded text-sm ${
+                connectionStatus === "연결됨" ? "bg-green-100 text-green-800" :
+                connectionStatus === "연결 중..." ? "bg-yellow-100 text-yellow-800" :
+                "bg-red-100 text-red-800"
+              }`}>
+                {connectionStatus}
+              </div>
+              
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+              >
+                로그아웃
+              </button>
             </div>
           </div>
         </div>
