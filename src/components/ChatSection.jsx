@@ -23,19 +23,32 @@ const ChatSection = ({ messages, sendMessage }) => {
       <div className="max-h-96 overflow-y-auto p-4">
         {messages.length > 0 ? (
           messages.map((message, index) => (
-            <div key={index} className="mb-4 p-3 border-b">
+            <div key={index} className={`mb-4 p-3 border-b ${message.isSystem ? 'bg-gray-50' : ''}`}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="font-medium text-blue-600">{message.username || '익명'}</span>
+                <span className={`font-medium ${
+                  message.isSystem 
+                    ? 'text-gray-600' 
+                    : message.username === '나' 
+                      ? 'text-green-600' 
+                      : 'text-blue-600'
+                }`}>
+                  {message.username || '익명'}
+                </span>
                 <span className="text-sm text-gray-500">
                   {new Date(message.timestamp).toLocaleTimeString()}
                 </span>
+                {message.isPending && (
+                  <span className="text-xs text-orange-500">전송 중...</span>
+                )}
               </div>
-              <p className="text-gray-800">{message.content}</p>
+              <p className={`text-gray-800 ${message.isSystem ? 'italic text-sm' : ''}`}>
+                {message.content}
+              </p>
             </div>
           ))
         ) : (
           <div className="text-center text-gray-500 py-8">
-            아직 메시지가 없습니다. 첫 번째 메시지를 남겨보세요!
+            채팅방이 로딩 중입니다...
           </div>
         )}
         <div ref={messagesEndRef} />

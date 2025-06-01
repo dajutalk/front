@@ -13,42 +13,117 @@ export default function StockDetail() {
   const [messages, setMessages] = useState([]);
   const [chatWs, setChatWs] = useState(null);
 
-  // 채팅 WebSocket 연결 - 일단 비활성화
+  // 채팅 WebSocket 연결
   useEffect(() => {
     console.log(`🔍 [${symbol}] 채팅 WebSocket 연결 시도 중...`);
     
-    // 서버에서 채팅 엔드포인트가 준비되지 않은 것 같으니 임시로 비활성화
-    // const chatSocket = new WebSocket(`ws://localhost:8000/ws/chat?symbol=${symbol}`);
-    // setChatWs(chatSocket);
+    // 사용자 정보 설정
+    const nickname = `사용자${Math.floor(Math.random() * 1000)}`;
+    const userId = `user_${Date.now()}`;
+    
+    // 새로운 채팅 엔드포인트로 연결
+    const chatSocket = new WebSocket(`ws://localhost:8000/ws/chat/${symbol}?nickname=${nickname}&user_id=${userId}`);
+    setChatWs(chatSocket);
 
-    // 임시 더미 메시지
+    chatSocket.onopen = () => {
+      console.log(`✅ [${symbol}] 채팅방 연결됨`);
+    };
+
+    chatSocket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log(`📨 [${symbol}] 채팅 메시지 수신:`, data);
+        
+        if (data.type === 'chat_message') {
+          // 일반 채팅 메시지
+          const newMessage = {
+            content: data.data.message,
+            username: data.data.nickname,
+            timestamp: data.data.timestamp || new Date().toISOString(),
+            userId: data.data.user_id
+          };
+          setMessages(prev => [...prev.slice(-99), newMessage]);
+          
+        } else if (data.type === 'user_joined') {
+          // 사용자 입장 알림
+          const joinMessage = {
+            content: data.data.message,
+            username: "시스템",
+            timestamp: new Date().toISOString(),
+            isSystem: true
+          };
+          setMessages(prev => [...prev.slice(-99), joinMessage]);
+          
+        } else if (data.type === 'user_left') {
+          // 사용자 퇴장 알림
+          const leaveMessage = {
+            content: data.data.message,
+            username: "시스템", 
+            timestamp: new Date().toISOString(),
+            isSystem: true
+          };
+          setMessages(prev => [...prev.slice(-99), leaveMessage]);
+          
+        } else if (data.type === 'room_info') {
+          // 채팅방 정보 (현재 사용자 수 등)
+          console.log(`📊 [${symbol}] 채팅방 정보:`, data.data);
+          // 필요시 상태로 저장하여 UI에 표시
+          
+        } else {
+          console.log(`❓ [${symbol}] 알 수 없는 메시지 타입:`, data.type);
+        }
+        
+      } catch (error) {
+        console.error(`❌ [${symbol}] 채팅 메시지 파싱 에러:`, error);
+      }
+    };
+
+    chatSocket.onerror = (error) => {
+      console.error(`🚨 [${symbol}] 채팅 WebSocket 에러:`, error);
+    };
+
+    chatSocket.onclose = (event) => {
+      console.log(`❌ [${symbol}] 채팅 WebSocket 연결 종료. Code: ${event.code}`);
+    };
+
+    // 초기 시스템 메시지
     setMessages([
       {
-        content: `${symbol} 종목에 대한 토론을 시작해보세요!`,
+        content: `${symbol} 채팅방에 오신 것을 환영합니다!`,
         username: "시스템",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        isSystem: true
       }
     ]);
 
     return () => {
-      // chatSocket?.close();
+      chatSocket?.close();
     };
   }, [symbol]);
 
   const sendMessage = (content) => {
     console.log(`💬 [${symbol}] 메시지 전송 시도:`, content);
     
-    // 임시로 로컬 메시지 추가 (서버 연결 전까지)
-    const newMessage = {
-      content,
-      username: "사용자",
-      timestamp: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, newMessage]);
-    
-    // if (chatWs && chatWs.readyState === WebSocket.OPEN) {
-    //   chatWs.send(JSON.stringify(newMessage));
-    // }
+    if (chatWs && chatWs.readyState === WebSocket.OPEN) {
+      const messageData = {
+        type: 'chat_message',
+        message: content
+      };
+      
+      chatWs.send(JSON.stringify(messageData));
+      console.log(`📤 [${symbol}] 메시지 전송됨:`, messageData);
+    } else {
+      console.warn(`⚠️ [${symbol}] WebSocket이 연결되지 않음`);
+      
+      // 연결이 안 된 경우 임시로 로컬 메시지 추가
+      const fallbackMessage = {
+        content: content + " (연결 중...)",
+        username: "나",
+        timestamp: new Date().toISOString(),
+        isPending: true
+      };
+      setMessages(prev => [...prev, fallbackMessage]);
+    }
   };
 
   // 메인 데이터 수신용 useEffect
