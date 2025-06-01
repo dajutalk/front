@@ -1,95 +1,145 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 
-const LoginPage = () => {
+const Login = () => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('password', formData.password);
+
+      const response = await fetch('http://localhost:8000/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        body: formDataToSend
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('로그인 성공:', userData);
+        navigate('/');
+      } else {
+        const errorData = await response.json();
+        setError(errorData.detail || '로그인에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('로그인 에러:', error);
+      setError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKakaoLogin = () => {
+    window.location.href = 'http://localhost:8000/auth/kakao/redirect';
+  };
+
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>로그인/회원가입</h2>
-      <form style={styles.form}>
-        <input type="text" placeholder="아이디" style={styles.input} />
-        <div style={styles.passwordContainer}>
-          <input type="password" placeholder="비밀번호" style={styles.input} />
-          <span style={styles.eyeIcon}>👁️</span>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            로그인
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            계정에 로그인하세요
+          </p>
         </div>
-        <button type="submit" style={styles.loginButton}>로그인</button>
-      </form>
+        
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                이메일
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="이메일을 입력하세요"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                비밀번호
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                minLength={6}
+                value={formData.password}
+                onChange={handleChange}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="비밀번호를 입력하세요 (최소 6자)"
+              />
+            </div>
+          </div>
 
-      <button
-        style={styles.kakaoButton}
-        onClick={() => {
-          // TODO: 카카오 로그인 URL로 리다이렉트
-          window.location.href = 'http://localhost:8000/api/auth/kakao/callback';
-        }}
-      >
-        💬 카카오 로그인
-      </button>
+          <div className="space-y-3">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {isLoading ? '로그인 중...' : '로그인'}
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleKakaoLogin}
+              className="w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-yellow-300 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+            >
+              카카오로 로그인
+            </button>
+          </div>
+        </form>
+        
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            계정이 없으신가요?{' '}
+            <Link 
+              to="/signup" 
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
+              회원가입
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
 
-const styles = {
-  container: {
-    maxWidth: '400px',
-    margin: '0 auto',
-    padding: '2rem',
-    fontFamily: 'sans-serif',
-    border: '1px solid #ccc',
-    borderRadius: '8px'
-  },
-  title: {
-    fontSize: '1.2rem',
-    marginBottom: '1rem'
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem'
-  },
-  input: {
-    padding: '0.8rem',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-    width: '100%',
-    boxSizing: 'border-box' // ✅ 크기 맞춤
-  },
-  passwordContainer: {
-    position: 'relative'
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: '10px',
-    top: '10px',
-    cursor: 'pointer'
-  },
-  loginButton: {
-    backgroundColor: 'black',
-    color: 'white',
-    padding: '0.8rem',
-    border: 'none',
-    borderRadius: '4px',
-    width: '100%',
-    cursor: 'pointer'
-  },
-  options: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontSize: '0.9rem',
-    marginTop: '0.5rem',
-    border: 'none' // ✅ 파란색 네모 제거
-  },
-  findInfo: {
-    color: '#666'
-  },
-  kakaoButton: {
-    backgroundColor: '#FEE500',
-    color: 'black',
-    padding: '0.8rem',
-    border: 'none',
-    borderRadius: '4px',
-    width: '100%',
-    cursor: 'pointer',
-    marginTop: '1rem'
-  }
-};
-
-export default LoginPage;
+export default Login;

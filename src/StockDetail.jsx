@@ -17,79 +17,94 @@ export default function StockDetail() {
   useEffect(() => {
     console.log(`🔍 [${symbol}] 채팅 WebSocket 연결 시도 중...`);
     
-    // 사용자 정보 설정
-    const nickname = `사용자${Math.floor(Math.random() * 1000)}`;
-    const userId = `user_${Date.now()}`;
-    
-    // 새로운 채팅 엔드포인트로 연결
-    const chatSocket = new WebSocket(`ws://localhost:8000/ws/chat/${symbol}?nickname=${nickname}&user_id=${userId}`);
-    setChatWs(chatSocket);
-
-    chatSocket.onopen = () => {
-      console.log(`✅ [${symbol}] 채팅방 연결됨`);
-    };
-
-    chatSocket.onmessage = (event) => {
+    // 로그인된 사용자 정보 가져오기
+    const getUserInfo = async () => {
       try {
-        const data = JSON.parse(event.data);
-        console.log(`📨 [${symbol}] 채팅 메시지 수신:`, data);
+        const response = await fetch('http://localhost:8000/auth/me', {
+          credentials: 'include'
+        });
         
-        if (data.type === 'chat_message') {
-          // 일반 채팅 메시지
-          const newMessage = {
-            content: data.data.message,
-            username: data.data.nickname,
-            timestamp: data.data.timestamp || new Date().toISOString(),
-            userId: data.data.user_id
-          };
-          setMessages(prev => [...prev.slice(-99), newMessage]);
-          
-        } else if (data.type === 'user_joined') {
-          // 사용자 입장 알림
-          const joinMessage = {
-            content: data.data.message,
-            username: "시스템",
-            timestamp: new Date().toISOString(),
-            isSystem: true
-          };
-          setMessages(prev => [...prev.slice(-99), joinMessage]);
-          
-        } else if (data.type === 'user_left') {
-          // 사용자 퇴장 알림
-          const leaveMessage = {
-            content: data.data.message,
-            username: "시스템", 
-            timestamp: new Date().toISOString(),
-            isSystem: true
-          };
-          setMessages(prev => [...prev.slice(-99), leaveMessage]);
-          
-        } else if (data.type === 'room_info') {
-          // 채팅방 정보 (현재 사용자 수 등)
-          console.log(`📊 [${symbol}] 채팅방 정보:`, data.data);
-          // 필요시 상태로 저장하여 UI에 표시
-          
-        } else {
-          console.log(`❓ [${symbol}] 알 수 없는 메시지 타입:`, data.type);
+        if (response.ok) {
+          return await response.json();
         }
-        
       } catch (error) {
-        console.error(`❌ [${symbol}] 채팅 메시지 파싱 에러:`, error);
+        console.error('사용자 정보 조회 실패:', error);
       }
+      
+      // 로그인되지 않은 경우 기본값
+      return {
+        nickname: `게스트${Math.floor(Math.random() * 1000)}`,
+        user_id: `guest_${Date.now()}`
+      };
     };
+    
+    const initializeChat = async () => {
+      const userInfo = await getUserInfo();
+      const nickname = encodeURIComponent(userInfo.nickname);
+      const userId = userInfo.user_id || userInfo.id;
+      
+      console.log(`👤 [${symbol}] 사용자 정보:`, userInfo);
+      
+      const chatSocket = new WebSocket(`ws://localhost:8000/ws/chat/${symbol}?nickname=${nickname}&user_id=${userId}`);
+      setChatWs(chatSocket);
 
-    chatSocket.onerror = (error) => {
-      console.error(`🚨 [${symbol}] 채팅 WebSocket 에러:`, error);
+      chatSocket.onopen = () => {
+        console.log(`✅ [${symbol}] 채팅방 연결됨 (${userInfo.nickname})`);
+      };
+
+      chatSocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log(`📨 [${symbol}] 채팅 메시지 수신:`, data);
+          
+          if (data.type === 'chat_message') {
+            const newMessage = {
+              content: data.data.message,
+              username: data.data.nickname,
+              timestamp: data.data.timestamp || new Date().toISOString(),
+              userId: data.data.user_id,
+              isOwn: data.data.user_id === userId
+            };
+            setMessages(prev => [...prev.slice(-99), newMessage]);
+            
+          } else if (data.type === 'user_joined') {
+            const joinMessage = {
+              content: data.data.message,
+              username: "시스템",
+              timestamp: new Date().toISOString(),
+              isSystem: true
+            };
+            setMessages(prev => [...prev.slice(-99), joinMessage]);
+            
+          } else if (data.type === 'user_left') {
+            const leaveMessage = {
+              content: data.data.message,
+              username: "시스템", 
+              timestamp: new Date().toISOString(),
+              isSystem: true
+            };
+            setMessages(prev => [...prev.slice(-99), leaveMessage]);
+          }
+        } catch (error) {
+          console.error(`❌ [${symbol}] 채팅 메시지 파싱 에러:`, error);
+        }
+      };
+
+      chatSocket.onerror = (error) => {
+        console.error(`🚨 [${symbol}] 채팅 WebSocket 에러:`, error);
+      };
+
+      chatSocket.onclose = (event) => {
+        console.log(`❌ [${symbol}] 채팅 WebSocket 연결 종료. Code: ${event.code}`);
+      };
     };
+    
+    initializeChat();
 
-    chatSocket.onclose = (event) => {
-      console.log(`❌ [${symbol}] 채팅 WebSocket 연결 종료. Code: ${event.code}`);
-    };
-
-    // 초기 시스템 메시지
+    // 초기 환영 메시지
     setMessages([
       {
-        content: `${symbol} 채팅방에 오신 것을 환영합니다!`,
+        content: `${symbol} 채팅방에 오신 것을 환영합니다! 실시간으로 다른 투자자들과 소통해보세요.`,
         username: "시스템",
         timestamp: new Date().toISOString(),
         isSystem: true
@@ -97,17 +112,21 @@ export default function StockDetail() {
     ]);
 
     return () => {
-      chatSocket?.close();
+      if (chatWs?.readyState === WebSocket.OPEN) {
+        chatWs.close(1000, 'Component unmounting');
+      }
     };
   }, [symbol]);
 
   const sendMessage = (content) => {
+    if (!content.trim()) return;
+    
     console.log(`💬 [${symbol}] 메시지 전송 시도:`, content);
     
     if (chatWs && chatWs.readyState === WebSocket.OPEN) {
       const messageData = {
         type: 'chat_message',
-        message: content
+        message: content.trim()
       };
       
       chatWs.send(JSON.stringify(messageData));
@@ -117,10 +136,11 @@ export default function StockDetail() {
       
       // 연결이 안 된 경우 임시로 로컬 메시지 추가
       const fallbackMessage = {
-        content: content + " (연결 중...)",
+        content: content + " (전송 실패 - 연결을 확인해주세요)",
         username: "나",
         timestamp: new Date().toISOString(),
-        isPending: true
+        isError: true,
+        isOwn: true
       };
       setMessages(prev => [...prev, fallbackMessage]);
     }
