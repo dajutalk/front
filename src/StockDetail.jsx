@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
-import TabNavigation from "./components/TabNavigation";
 import ChatSection from "./components/ChatSection";
 
 export default function StockDetail() {
@@ -11,7 +10,6 @@ export default function StockDetail() {
   const [priceHistory, setPriceHistory] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState("연결 중...");
   const [wsRef, setWsRef] = useState(null);
-  const [activeTab, setActiveTab] = useState("차트");
   const [messages, setMessages] = useState([]);
   const [chatWs, setChatWs] = useState(null);
 
@@ -326,10 +324,54 @@ export default function StockDetail() {
     );
   }
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "차트":
-        return (
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* 헤더 */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={goBack}
+              className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded hover:bg-gray-200"
+            >
+              ← 전체 목록
+            </button>
+            <div className={`px-3 py-1 rounded text-sm ${
+              connectionStatus === "연결됨" ? "bg-green-100 text-green-800" :
+              connectionStatus === "연결 중..." ? "bg-yellow-100 text-yellow-800" :
+              "bg-red-100 text-red-800"
+            }`}>
+              {connectionStatus}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 메인 컨텐츠 */}
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        {/* 종목 정보 */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold">{stockData.symbol}</h1>
+              <p className="text-gray-600">{stockData.isStock ? '주식' : '암호화폐'}</p>
+            </div>
+            <div className="text-right">
+              <div className="text-4xl font-bold">
+                {stockData.isStock ? '$' : ''}{stockData.currentPrice.toLocaleString()}
+                <span className="text-lg ml-2">{stockData.isStock ? 'USD' : 'USDT'}</span>
+              </div>
+              <div className={`text-lg ${stockData.change >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                {stockData.change >= 0 ? '▲' : '▼'} {stockData.isStock ? '$' : ''}{Math.abs(stockData.change).toFixed(2)} 
+                ({stockData.changePercent >= 0 ? '+' : ''}{stockData.changePercent.toFixed(2)}%)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 차트와 채팅을 나란히 배치 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 차트 섹션 */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4">실시간 가격 차트</h2>
             <div className="h-96">
@@ -370,121 +412,14 @@ export default function StockDetail() {
               데이터 포인트: {priceHistory.length}개 | 실시간 업데이트
             </div>
           </div>
-        );
-      
-      case "토론":
-        return (
+
+          {/* 채팅 섹션 */}
           <div className="bg-white rounded-lg shadow">
+            <div className="p-4 border-b">
+              <h2 className="text-xl font-bold">{stockData.symbol} 실시간 토론</h2>
+            </div>
             <ChatSection messages={messages} sendMessage={sendMessage} />
           </div>
-        );
-      
-      case "종합":
-        return (
-          <div className="space-y-6">
-            {/* 차트 섹션 */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-bold mb-4">가격 차트</h3>
-              <div className="h-64">
-                {priceHistory.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={priceHistory}>
-                      <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                      <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={{ fontSize: 10 }} />
-                      <CartesianGrid stroke="#e0e0e0" />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="price"
-                        stroke={stockData.isStock ? "#10b981" : "#3b82f6"}
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    차트 로딩 중...
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* 토론 섹션 */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="p-4 border-b">
-                <h3 className="text-lg font-bold">실시간 토론</h3>
-              </div>
-              <ChatSection messages={messages.slice(-5)} sendMessage={sendMessage} />
-            </div>
-          </div>
-        );
-      
-      default:
-        return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold mb-4">{activeTab}</h3>
-            <p className="text-gray-500">준비 중입니다.</p>
-          </div>
-        );
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <button 
-              onClick={goBack}
-              className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded hover:bg-gray-200"
-            >
-              ← 전체 목록
-            </button>
-            <div className={`px-3 py-1 rounded text-sm ${
-              connectionStatus === "연결됨" ? "bg-green-100 text-green-800" :
-              connectionStatus === "연결 중..." ? "bg-yellow-100 text-yellow-800" :
-              "bg-red-100 text-red-800"
-            }`}>
-              {connectionStatus}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 메인 컨텐츠 */}
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* 종목 정보 */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold">{stockData.symbol}</h1>
-              <p className="text-gray-600">{stockData.isStock ? '주식' : '암호화폐'}</p>
-            </div>
-            <div className="text-right">
-              <div className="text-4xl font-bold">
-                {stockData.currentPrice.toLocaleString()}
-                <span className="text-lg ml-2">{stockData.isStock ? '원' : 'USDT'}</span>
-              </div>
-              <div className={`text-lg ${stockData.change >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
-                {stockData.change >= 0 ? '▲' : '▼'} {Math.abs(stockData.change).toFixed(2)} 
-                ({stockData.changePercent >= 0 ? '+' : ''}{stockData.changePercent.toFixed(2)}%)
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 탭 네비게이션 */}
-        <TabNavigation 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          showChart={true}
-        />
-
-        {/* 탭 컨텐츠 */}
-        <div className="mt-6">
-          {renderTabContent()}
         </div>
       </div>
     </div>
