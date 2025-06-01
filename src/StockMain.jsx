@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 
 export default function StockMain() {
-  const [stocks, setStocks] = useState([]); // 빈 배열로 시작
+  const [stocks, setStocks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [connectionStatus, setConnectionStatus] = useState("연결 중...");
   const [wsRef, setWsRef] = useState(null);
@@ -12,9 +12,33 @@ export default function StockMain() {
 
   const handleSelectStock = (selectedStockName) => {
     console.log("선택된 종목:", selectedStockName);
-    
-    // 종목 상세 페이지로 이동
     navigate(`/stock/${selectedStockName}`);
+  };
+
+  // 로그아웃 함수
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        console.log('✅ 로그아웃 성공');
+        navigate('/login');
+        window.location.reload(); // 인증 상태 업데이트
+      } else {
+        console.error('❌ 로그아웃 실패');
+        // 실패해도 로그인 페이지로 이동
+        navigate('/login');
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('🚨 로그아웃 에러:', error);
+      // 에러가 발생해도 로그인 페이지로 이동
+      navigate('/login');
+      window.location.reload();
+    }
   };
 
   // 최신 데이터 요청 함수
@@ -196,22 +220,31 @@ export default function StockMain() {
 
       {/* ✅ 차트 영역 */}
       <div className="flex-1 p-4">
-        {/* 연결 상태 표시 */}
+        {/* 헤더와 로그아웃 버튼 */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">📈 실시간 주식/코인 차트</h1>
-          <div className="flex items-center gap-2">
-            <span className={`px-2 py-1 rounded text-sm ${
-              connectionStatus === "연결됨" ? "bg-green-100 text-green-800" :
-              connectionStatus === "연결 중..." || connectionStatus === "재연결 중..." ? "bg-yellow-100 text-yellow-800" :
-              "bg-red-100 text-red-800"
-            }`}>
-              {connectionStatus}
-            </span>
-            <button 
-              onClick={requestLatestData}
-              className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-1 rounded text-sm ${
+                connectionStatus === "연결됨" ? "bg-green-100 text-green-800" :
+                connectionStatus === "연결 중..." || connectionStatus === "재연결 중..." ? "bg-yellow-100 text-yellow-800" :
+                "bg-red-100 text-red-800"
+              }`}>
+                {connectionStatus}
+              </span>
+              <button 
+                onClick={requestLatestData}
+                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+              >
+                새로고침
+              </button>
+            </div>
+            
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
             >
-              새로고침
+              로그아웃
             </button>
           </div>
         </div>

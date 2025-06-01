@@ -7,38 +7,58 @@ import StockMain from "./StockMain";
 import StockDetail from "./StockDetail";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = 로딩중
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // 로그인 상태 확인
     const checkAuth = async () => {
       try {
+        console.log('🔍 인증 상태 확인 중...');
+        
+        // 네트워크 연결 먼저 확인
+        const healthResponse = await fetch('http://localhost:8000/health', {
+          credentials: 'include'
+        });
+        
+        if (!healthResponse.ok) {
+          console.error('🚨 서버 연결 실패');
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+        
         const response = await fetch('http://localhost:8000/auth/me', {
           credentials: 'include'
         });
         
+        console.log('📡 인증 응답 상태:', response.status);
+        
         if (response.ok) {
           const userData = await response.json();
-          console.log('인증된 사용자:', userData);
+          console.log('✅ 인증된 사용자:', userData);
           setIsAuthenticated(true);
         } else {
+          console.log('❌ 인증 실패 - 로그인 필요');
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('인증 확인 실패:', error);
+        console.error('🚨 인증 확인 중 오류:', error);
         setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
       }
     };
     
     checkAuth();
   }, []);
   
-  if (isAuthenticated === null) {
+  // 로딩 중일 때 로딩 화면 표시
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>로딩 중...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">인증 상태 확인 중...</p>
         </div>
       </div>
     );
@@ -47,25 +67,68 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* 기본 경로 - 인증 상태에 따라 분기 */}
+        <Route 
+          path="/" 
+          element={
+            isAuthenticated === true 
+              ? <Navigate to="/dashboard" replace /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+        
+        {/* 인증되지 않은 사용자용 라우트 */}
         <Route 
           path="/login" 
-          element={isAuthenticated ? <Navigate to="/" /> : <LoginPage />} 
+          element={
+            isAuthenticated === true 
+              ? <Navigate to="/dashboard" replace /> 
+              : <LoginPage />
+          } 
         />
         <Route 
           path="/signup" 
-          element={isAuthenticated ? <Navigate to="/" /> : <SignupPage />} 
+          element={
+            isAuthenticated === true 
+              ? <Navigate to="/dashboard" replace /> 
+              : <SignupPage />
+          } 
         />
+        
+        {/* 인증된 사용자용 라우트 */}
         <Route 
-          path="/" 
-          element={isAuthenticated ? <StockMain /> : <Navigate to="/login" />} 
+          path="/dashboard" 
+          element={
+            isAuthenticated === true 
+              ? <StockMain /> 
+              : <Navigate to="/login" replace />
+          } 
         />
         <Route 
           path="/stock" 
-          element={isAuthenticated ? <StockPage /> : <Navigate to="/login" />} 
+          element={
+            isAuthenticated === true 
+              ? <StockPage /> 
+              : <Navigate to="/login" replace />
+          } 
         />
         <Route 
           path="/stock/:symbol" 
-          element={isAuthenticated ? <StockDetail /> : <Navigate to="/login" />} 
+          element={
+            isAuthenticated === true 
+              ? <StockDetail /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+        
+        {/* 404 처리 */}
+        <Route 
+          path="*" 
+          element={
+            isAuthenticated === true 
+              ? <Navigate to="/dashboard" replace /> 
+              : <Navigate to="/login" replace />
+          } 
         />
       </Routes>
     </Router>

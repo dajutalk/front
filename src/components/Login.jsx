@@ -27,23 +27,33 @@ const Login = () => {
       formDataToSend.append('email', formData.email);
       formDataToSend.append('password', formData.password);
 
+      console.log('📤 로그인 시도:', { email: formData.email, password: '****' });
+
       const response = await fetch('http://localhost:8000/auth/login', {
         method: 'POST',
         credentials: 'include',
         body: formDataToSend
       });
 
+      console.log('📡 로그인 응답 상태:', response.status);
+
       if (response.ok) {
         const userData = await response.json();
-        console.log('로그인 성공:', userData);
-        navigate('/');
+        console.log('✅ 로그인 성공:', userData);
+        
+        // 로그인 성공 시 대시보드로 이동
+        navigate('/dashboard');
+        
+        // 페이지 새로고침으로 앱 전체 인증 상태 업데이트
+        window.location.reload();
       } else {
         const errorData = await response.json();
+        console.error('❌ 로그인 실패:', errorData);
         setError(errorData.detail || '로그인에 실패했습니다.');
       }
     } catch (error) {
-      console.error('로그인 에러:', error);
-      setError('네트워크 오류가 발생했습니다.');
+      console.error('🚨 로그인 네트워크 에러:', error);
+      setError('네트워크 오류가 발생했습니다. 서버 연결을 확인해주세요.');
     } finally {
       setIsLoading(false);
     }

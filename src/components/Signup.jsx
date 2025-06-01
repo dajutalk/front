@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Signup = () => {
@@ -42,6 +42,8 @@ const Signup = () => {
       return;
     }
 
+    console.log('📧 이메일 중복 확인:', formData.email);
+
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('email', formData.email);
@@ -51,20 +53,32 @@ const Signup = () => {
         body: formDataToSend
       });
 
-      const result = await response.json();
-      setValidation(prev => ({
-        ...prev,
-        email: { 
-          available: result.available, 
-          message: result.message,
-          checked: true 
-        }
-      }));
+      console.log('📡 이메일 확인 응답:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ 이메일 확인 결과:', result);
+        setValidation(prev => ({
+          ...prev,
+          email: { 
+            available: result.available, 
+            message: result.message,
+            checked: true 
+          }
+        }));
+      } else {
+        const errorData = await response.json();
+        console.error('❌ 이메일 확인 실패:', errorData);
+        setValidation(prev => ({
+          ...prev,
+          email: { available: false, message: errorData.detail || '이메일 확인 중 오류가 발생했습니다', checked: true }
+        }));
+      }
     } catch (error) {
-      console.error('이메일 확인 에러:', error);
+      console.error('🚨 이메일 확인 네트워크 에러:', error);
       setValidation(prev => ({
         ...prev,
-        email: { available: false, message: '확인 중 오류가 발생했습니다', checked: true }
+        email: { available: false, message: '서버 연결 오류가 발생했습니다', checked: true }
       }));
     }
   };
@@ -79,6 +93,8 @@ const Signup = () => {
       return;
     }
 
+    console.log('👤 닉네임 중복 확인:', formData.nickname);
+
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('nickname', formData.nickname);
@@ -88,20 +104,32 @@ const Signup = () => {
         body: formDataToSend
       });
 
-      const result = await response.json();
-      setValidation(prev => ({
-        ...prev,
-        nickname: { 
-          available: result.available, 
-          message: result.message,
-          checked: true 
-        }
-      }));
+      console.log('📡 닉네임 확인 응답:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ 닉네임 확인 결과:', result);
+        setValidation(prev => ({
+          ...prev,
+          nickname: { 
+            available: result.available, 
+            message: result.message,
+            checked: true 
+          }
+        }));
+      } else {
+        const errorData = await response.json();
+        console.error('❌ 닉네임 확인 실패:', errorData);
+        setValidation(prev => ({
+          ...prev,
+          nickname: { available: false, message: errorData.detail || '닉네임 확인 중 오류가 발생했습니다', checked: true }
+        }));
+      }
     } catch (error) {
-      console.error('닉네임 확인 에러:', error);
+      console.error('🚨 닉네임 확인 네트워크 에러:', error);
       setValidation(prev => ({
         ...prev,
-        nickname: { available: false, message: '확인 중 오류가 발생했습니다', checked: true }
+        nickname: { available: false, message: '서버 연결 오류가 발생했습니다', checked: true }
       }));
     }
   };
@@ -122,8 +150,26 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!isFormValid()) {
-      setError('모든 항목을 올바르게 입력해주세요.');
+    console.log('🚀 회원가입 시도:', formData);
+    
+    // 유효성 검사
+    if (!validation.email.available) {
+      setError('이메일 중복 확인을 완료해주세요.');
+      return;
+    }
+    
+    if (!validation.nickname.available) {
+      setError('닉네임 중복 확인을 완료해주세요.');
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError('비밀번호는 최소 6자 이상이어야 합니다.');
+      return;
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError('비밀번호가 일치하지 않습니다.');
       return;
     }
 
@@ -136,23 +182,35 @@ const Signup = () => {
       formDataToSend.append('password', formData.password);
       formDataToSend.append('nickname', formData.nickname);
 
+      console.log('📤 회원가입 데이터 전송:', {
+        email: formData.email,
+        password: '****',
+        nickname: formData.nickname
+      });
+
       const response = await fetch('http://localhost:8000/auth/signup', {
         method: 'POST',
         credentials: 'include',
         body: formDataToSend
       });
 
+      console.log('📡 회원가입 응답 상태:', response.status);
+      
       if (response.ok) {
         const userData = await response.json();
-        console.log('회원가입 성공:', userData);
-        navigate('/');
+        console.log('✅ 회원가입 성공:', userData);
+        
+        // 회원가입 성공 시 자동 로그인되므로 대시보드로 이동
+        alert('회원가입이 완료되었습니다!');
+        navigate('/dashboard');
       } else {
         const errorData = await response.json();
-        setError(errorData.detail || '회원가입에 실패했습니다.');
+        console.error('❌ 회원가입 실패:', errorData);
+        setError(errorData.detail || errorData.message || '회원가입에 실패했습니다.');
       }
     } catch (error) {
-      console.error('회원가입 에러:', error);
-      setError('네트워크 오류가 발생했습니다.');
+      console.error('🚨 회원가입 네트워크 에러:', error);
+      setError('네트워크 오류가 발생했습니다. 서버 연결을 확인해주세요.');
     } finally {
       setIsLoading(false);
     }
