@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
 import ChatSection from "./components/ChatSection";
+import BuyModal from "./components/BuyModal";
+import SellModal from "./components/SellModal";
 
 export default function StockDetail() {
   const { symbol } = useParams();
@@ -12,6 +14,8 @@ export default function StockDetail() {
   const [wsRef, setWsRef] = useState(null);
   const [messages, setMessages] = useState([]);
   const [chatWs, setChatWs] = useState(null);
+  const [buyModalOpen, setBuyModalOpen] = useState(false);
+  const [sellModalOpen, setSellModalOpen] = useState(false);
 
   // 채팅 WebSocket 연결
   useEffect(() => {
@@ -37,6 +41,7 @@ export default function StockDetail() {
         user_id: `guest_${Date.now()}`
       };
     };
+
     
     const initializeChat = async () => {
       const userInfo = await getUserInfo();
@@ -152,6 +157,49 @@ export default function StockDetail() {
       }
     };
   }, [symbol]);
+    const handleBuyConfirm = async ({ symbol, price, quantity }) => {
+  try {
+    const res = await fetch("http://localhost:8000/api/mock-investment/buy", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify({ symbol, price, quantity })
+    });
+
+    if (res.ok) {
+      alert("매수 주문 완료!");
+    } else {
+      const err = await res.json();
+      alert(err.detail || "매수 실패");
+    }
+  } catch (error) {
+    console.error("매수 요청 실패:", error);
+  }
+};
+
+const handleSellConfirm = async ({ symbol, price, quantity }) => {
+    try {
+      const res = await fetch("http://localhost:8000/api/mock-investment/sell", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({ symbol, price, quantity })
+      });
+
+      if (res.ok) {
+        alert("매도 주문 완료!");
+      } else {
+        const err = await res.json();
+        alert(err.detail || "매도 실패");
+      }
+    } catch (error) {
+      console.error("매도 요청 실패:", error);
+    }
+  };
 
   const sendMessage = (content) => {
     if (!content.trim()) return;
@@ -510,7 +558,27 @@ export default function StockDetail() {
             <div>
               <h1 className="text-3xl font-bold">{stockData.symbol}</h1>
               <p className="text-gray-600">{stockData.isStock ? '주식' : '암호화폐'}</p>
-            </div>
+             <div className="flex gap-2 mt-2">
+        <button
+          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          onClick={() => {
+            setBuyModalOpen(true)
+            console.log("🟢 사기 클릭");
+          }}
+        >
+          사기
+        </button>
+        <button
+          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          onClick={() => {
+            setSellModalOpen(true)
+            console.log("🔵 팔기 클릭");
+          }}
+        >
+          팔기
+        </button>
+      </div>
+    </div>
             <div className="text-right">
               <div className="text-4xl font-bold">
                 {stockData.isStock ? '$' : ''}{stockData.currentPrice.toLocaleString()}
@@ -567,6 +635,18 @@ export default function StockDetail() {
               데이터 포인트: {priceHistory.length}개 | 실시간 업데이트
             </div>
           </div>
+          <BuyModal
+            open={buyModalOpen}
+            onClose={() => setBuyModalOpen(false)}
+            stockData={stockData}
+            onConfirm={handleBuyConfirm}
+          />
+          <SellModal
+            open={sellModalOpen}
+            onClose={() => setSellModalOpen(false)}
+            stockData={stockData}
+            onConfirm={handleSellConfirm}
+          />
 
           {/* 채팅 섹션 */}
           <div className="bg-white rounded-lg shadow">
@@ -579,4 +659,6 @@ export default function StockDetail() {
       </div>
     </div>
   );
+
+
 }
