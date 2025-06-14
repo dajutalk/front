@@ -5,6 +5,7 @@ import SignupPage from './components/Signup';
 import StockPage from './StockPage';
 import StockMain from "./StockMain";
 import StockDetail from "./StockDetail";
+import MyPage from './components/MyPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -101,6 +102,15 @@ function App() {
           element={
             isAuthenticated === true 
               ? <StockMain /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/mypage" 
+          element={
+            isAuthenticated === true 
+              ? <MyPage /> 
               : <Navigate to="/login" replace />
           } 
         />
