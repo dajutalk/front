@@ -1,5 +1,5 @@
 import React from "react";
-import { FiSearch } from "react-icons/fi"; // 돋보기 아이콘
+import { FiSearch } from "react-icons/fi";
 
 export default function Sidebar({
   searchTerm = "",
@@ -8,7 +8,8 @@ export default function Sidebar({
   onSelectStock = () => {},
 }) {
   return (
-    <div className="w-64 p-4 bg-gray-100 h-screen sticky top-0">
+    <div className="w-64 p-4 bg-gray-100 h-screen flex flex-col">
+      {/* 검색창 */}
       <div className="relative mb-4">
         <FiSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <input
@@ -20,7 +21,8 @@ export default function Sidebar({
         />
       </div>
 
-      <ul>
+      {/* 종목 리스트 - 스크롤 가능 */}
+      <ul className="flex-1 overflow-y-auto pr-1">
         {stockList.length > 0 ? (
           stockList
             .filter((stock) => stock.name.includes(searchTerm))
