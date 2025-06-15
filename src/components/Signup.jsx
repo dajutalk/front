@@ -190,7 +190,7 @@ const Signup = () => {
         nickname: formData.nickname
       });
 
-      const response = await fetch(`${API_URL}:8000/auth/signup`, {
+      const response = await fetch(`${API_URL}/auth/signup`, {
         method: 'POST',
         credentials: 'include',
         body: formDataToSend
