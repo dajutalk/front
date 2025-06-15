@@ -74,7 +74,7 @@ const Login = () => {
 
       console.log('📤 로그인 시도:', { email: formData.email, password: '****' });
 
-      const response = await fetch('http://localhost:8000/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         credentials: 'include',
         body: formDataToSend
