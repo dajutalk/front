@@ -101,7 +101,7 @@ const Signup = () => {
       const formDataToSend = new FormData();
       formDataToSend.append('nickname', formData.nickname);
 
-      const response = await fetch(`$${API_URL}/auth/check-nickname`, {
+      const response = await fetch(`${API_URL}/auth/check-nickname`, {
         method: 'POST',
         body: formDataToSend
       });
