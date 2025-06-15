@@ -6,6 +6,9 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Chatbot from "./components/Chatbot";
 
+const API_URL = process.env.REACT_APP_API_URL;
+const API_WS = process.env.REACT_APP_API_WS;
+
 export default function StockMain() {
   const [stocks, setStocks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,7 +22,7 @@ export default function StockMain() {
 
   const handleStartMockInvestment = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/mock-investment/start", {
+      const res = await fetch(`${API_URL}/api/mock-investment/start`, {
         method: "POST",
         credentials: "include",
       });
@@ -37,7 +40,7 @@ export default function StockMain() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:8000/auth/logout", {
+      const response = await fetch(`${API_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -56,7 +59,7 @@ export default function StockMain() {
   };
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8000/ws/main");
+    const ws = new WebSocket(`ws://${API_WS}/ws/main`);
     setWsRef(ws);
 
     ws.onopen = () => {

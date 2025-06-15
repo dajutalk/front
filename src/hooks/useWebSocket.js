@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 
+const API_WS = process.env.REACT_APP_API_WS;
+
 export function useStockWebSocket(stockCode) {
   const [stockData, setStockData] = useState(null);         // 최신 주가 1개
   const [priceHistory, setPriceHistory] = useState([]);     // 차트 데이터용
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://localhost:8000/ws/stocks?code=${stockCode}`);
+    const ws = new WebSocket(`ws://${API_WS}/ws/stocks?code=${stockCode}`);
 
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 export default function MyPage() {
   const [holdings, setHoldings] = useState([]);
   const [trades, setTrades] = useState([]);
@@ -11,10 +13,10 @@ export default function MyPage() {
     const fetchData = async () => {
       try {
         const [holdingsRes, tradesRes] = await Promise.all([
-          fetch("http://localhost:8000/api/mock-investment/holdings-summary", {
+          fetch(`${API_URL}/api/mock-investment/holdings-summary`, {
             credentials: "include",
           }),
-          fetch("http://localhost:8000/api/mock-investment/trade-history", {
+          fetch(`${API_URL}/api/mock-investment/trade-history`, {
             credentials: "include",
           }),
         ]);
@@ -36,7 +38,7 @@ export default function MyPage() {
 
   const handleStartMockInvestment = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/mock-investment/start", {
+      const res = await fetch(`${API_URL}/api/mock-investment/start`, {
         method: "POST",
         credentials: "include",
       });

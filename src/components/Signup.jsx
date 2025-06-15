@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const Signup = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -48,7 +50,7 @@ const Signup = () => {
       const formDataToSend = new FormData();
       formDataToSend.append('email', formData.email);
 
-      const response = await fetch('http://localhost:8000/auth/check-email', {
+      const response = await fetch(`${API_URL}/auth/check-email`, {
         method: 'POST',
         body: formDataToSend
       });
@@ -99,7 +101,7 @@ const Signup = () => {
       const formDataToSend = new FormData();
       formDataToSend.append('nickname', formData.nickname);
 
-      const response = await fetch('http://localhost:8000/auth/check-nickname', {
+      const response = await fetch(`$${API_URL}/auth/check-nickname`, {
         method: 'POST',
         body: formDataToSend
       });
@@ -188,7 +190,7 @@ const Signup = () => {
         nickname: formData.nickname
       });
 
-      const response = await fetch('http://localhost:8000/auth/signup', {
+      const response = await fetch(`${API_URL}:8000/auth/signup`, {
         method: 'POST',
         credentials: 'include',
         body: formDataToSend

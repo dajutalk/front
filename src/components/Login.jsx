@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-
+const API_URL = process.env.REACT_APP_API_URL;
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -51,7 +51,7 @@ const Login = () => {
     localStorage.setItem('beforeKakaoLogin', window.location.pathname);
     
     // 카카오 로그인 시작
-    window.location.href = 'http://localhost:8000/auth/kakao/redirect';
+    window.location.href = `${API_URL}/auth/kakao/redirect`;
   };
 
   const handleChange = (e) => {

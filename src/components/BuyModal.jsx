@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 export default function BuyModal({ open, onClose, stockData, onConfirm }) {
   const [quantity, setQuantity] = useState(1);
   const [balance, setBalance] = useState(null);
 
   useEffect(() => {
     if (open) {
-      fetch("http://localhost:8000/api/mock-investment/balance", {
+      fetch(`${API_URL}/api/mock-investment/balance`, {
         credentials: "include",
       })
         .then((res) => res.json())
@@ -23,7 +25,7 @@ export default function BuyModal({ open, onClose, stockData, onConfirm }) {
     if (quantity < 1 || isNaN(quantity)) return;
 
     try {
-      const res = await fetch("http://localhost:8000/api/mock-investment/buy", {
+      const res = await fetch(`${API_URL}/api/mock-investment/buy`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

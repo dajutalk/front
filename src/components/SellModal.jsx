@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 export default function SellModal({ open, onClose, stockData, onConfirm }) {
   const [quantity, setQuantity] = useState(1);
   const [holdingQuantity, setHoldingQuantity] = useState(null);
 
   useEffect(() => {
     if (open) {
-      fetch(`http://localhost:8000/api/mock-investment/holdings?symbol=${stockData.symbol}`, {
+      fetch(`${API_URL}/api/mock-investment/holdings?symbol=${stockData.symbol}`, {
         credentials: "include",
       })
         .then((res) => res.json())
@@ -21,7 +23,7 @@ export default function SellModal({ open, onClose, stockData, onConfirm }) {
 
   const handleSubmit = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/mock-investment/sell", {
+      const res = await fetch(`${API_URL}/api/mock-investment/sell`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

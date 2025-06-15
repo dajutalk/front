@@ -5,6 +5,9 @@ import ChatSection from "./components/ChatSection";
 import BuyModal from "./components/BuyModal";
 import SellModal from "./components/SellModal";
 
+const API_URL = process.env.REACT_APP_API_URL;
+const API_WS = process.env.REACT_APP_API_WS;
+
 export default function StockDetail() {
   const { symbol } = useParams();
   const navigate = useNavigate();
@@ -24,7 +27,7 @@ export default function StockDetail() {
     // 로그인된 사용자 정보 가져오기
     const getUserInfo = async () => {
       try {
-        const response = await fetch('http://localhost:8000/auth/me', {
+        const response = await fetch(`${API_URL}/auth/me`, {
           credentials: 'include'
         });
         
@@ -50,7 +53,7 @@ export default function StockDetail() {
       
       console.log(`👤 [${symbol}] 사용자 정보:`, userInfo);
       
-      const chatSocket = new WebSocket(`ws://localhost:8000/ws/chat/${symbol}?nickname=${nickname}&user_id=${userId}`);
+      const chatSocket = new WebSocket(`ws://${API_WS}/ws/chat/${symbol}?nickname=${nickname}&user_id=${userId}`);
       setChatWs(chatSocket);
 
       chatSocket.onopen = () => {
@@ -159,7 +162,7 @@ export default function StockDetail() {
   }, [symbol]);
     const handleBuyConfirm = async ({ symbol, price, quantity }) => {
   try {
-    const res = await fetch("http://localhost:8000/api/mock-investment/buy", {
+    const res = await fetch(`${API_URL}/api/mock-investment/buy`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -181,7 +184,7 @@ export default function StockDetail() {
 
 const handleSellConfirm = async ({ symbol, price, quantity }) => {
     try {
-      const res = await fetch("http://localhost:8000/api/mock-investment/sell", {
+      const res = await fetch(`${API_URL}/api/mock-investment/sell`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -236,7 +239,7 @@ const handleSellConfirm = async ({ symbol, price, quantity }) => {
     
     // 메인 WebSocket으로 종목 타입 확인
     console.log(`🔍 [${symbol}] 메인 WebSocket 연결 시도 중...`);
-    const mainWs = new WebSocket(`ws://localhost:8000/ws/main`);
+    const mainWs = new WebSocket(`ws://${API_WS}/ws/main`);
     
     mainWs.onopen = () => {
       console.log(`✅ [${symbol}] 메인 WebSocket 연결 성공`);
@@ -313,8 +316,8 @@ const handleSellConfirm = async ({ symbol, price, quantity }) => {
             
             // 개별 종목용 WebSocket 연결
             const wsEndpoint = isStock 
-              ? `ws://localhost:8000/ws/stocks?symbol=${symbol}`
-              : `ws://localhost:8000/ws/crypto?symbol=${symbol}`;
+              ? `ws://${API_WS}/ws/stocks?symbol=${symbol}`
+              : `ws://${API_WS}/ws/crypto?symbol=${symbol}`;
               
             console.log(`🔗 [${symbol}] 개별 WebSocket 연결 시도:`, wsEndpoint);
             const ws = new WebSocket(wsEndpoint);
@@ -479,7 +482,7 @@ const handleSellConfirm = async ({ symbol, price, quantity }) => {
   // 로그아웃 함수
   const handleLogout = async () => {
     try {
-      const response = await fetch('http://localhost:8000/auth/logout', {
+      const response = await fetch(`${API_URL}/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 
+const API_WS = process.env.REACT_APP_API_WS;
+
 export function useChatWebSocket(stockCode) {
   const [messages, setMessages] = useState([]);
   const [ws, setWs] = useState(null);
 
   useEffect(() => {
-    const socket = new WebSocket(`ws://localhost:8000/ws/chat?code=${stockCode}`);
+    const socket = new WebSocket(`ws://${API_WS}/ws/chat?code=${stockCode}`);
     setWs(socket);
 
     socket.onmessage = (event) => {

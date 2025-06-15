@@ -7,6 +7,8 @@ import StockMain from "./StockMain";
 import StockDetail from "./StockDetail";
 import MyPage from './components/MyPage';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,7 +19,7 @@ function App() {
         console.log('🔍 인증 상태 확인 중...');
         
         // 네트워크 연결 먼저 확인
-        const healthResponse = await fetch('http://localhost:8000/health', {
+        const healthResponse = await fetch(`${API_URL}/health`, {
           credentials: 'include'
         });
         
@@ -28,7 +30,7 @@ function App() {
           return;
         }
         
-        const response = await fetch('http://localhost:8000/auth/me', {
+        const response = await fetch(`${API_URL}/auth/me`, {
           credentials: 'include'
         });
         
