@@ -7,7 +7,7 @@ export function useStockWebSocket(stockCode) {
   const [priceHistory, setPriceHistory] = useState([]);     // 차트 데이터용
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://${API_WS}/ws/stocks?code=${stockCode}`);
+    const ws = new WebSocket(`wss://${API_WS}/ws/stocks?code=${stockCode}`);
 
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);

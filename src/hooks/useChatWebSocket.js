@@ -7,7 +7,7 @@ export function useChatWebSocket(stockCode) {
   const [ws, setWs] = useState(null);
 
   useEffect(() => {
-    const socket = new WebSocket(`ws://${API_WS}/ws/chat?code=${stockCode}`);
+    const socket = new WebSocket(`wss://${API_WS}/ws/chat?code=${stockCode}`);
     setWs(socket);
 
     socket.onmessage = (event) => {
