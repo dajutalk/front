@@ -53,7 +53,7 @@ export default function StockDetail() {
       
       console.log(`👤 [${symbol}] 사용자 정보:`, userInfo);
       
-      const chatSocket = new WebSocket(`ws://${API_WS}/ws/chat/${symbol}?nickname=${nickname}&user_id=${userId}`);
+      const chatSocket = new WebSocket(`wss://${API_WS}/ws/chat/${symbol}?nickname=${nickname}&user_id=${userId}`);
       setChatWs(chatSocket);
 
       chatSocket.onopen = () => {
@@ -239,7 +239,7 @@ const handleSellConfirm = async ({ symbol, price, quantity }) => {
     
     // 메인 WebSocket으로 종목 타입 확인
     console.log(`🔍 [${symbol}] 메인 WebSocket 연결 시도 중...`);
-    const mainWs = new WebSocket(`ws://${API_WS}/ws/main`);
+    const mainWs = new WebSocket(`wss://${API_WS}/ws/main`);
     
     mainWs.onopen = () => {
       console.log(`✅ [${symbol}] 메인 WebSocket 연결 성공`);
@@ -316,8 +316,8 @@ const handleSellConfirm = async ({ symbol, price, quantity }) => {
             
             // 개별 종목용 WebSocket 연결
             const wsEndpoint = isStock 
-              ? `ws://${API_WS}/ws/stocks?symbol=${symbol}`
-              : `ws://${API_WS}/ws/crypto?symbol=${symbol}`;
+              ? `wss://${API_WS}/ws/stocks?symbol=${symbol}`
+              : `wss://${API_WS}/ws/crypto?symbol=${symbol}`;
               
             console.log(`🔗 [${symbol}] 개별 WebSocket 연결 시도:`, wsEndpoint);
             const ws = new WebSocket(wsEndpoint);

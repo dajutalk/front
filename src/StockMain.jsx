@@ -59,7 +59,7 @@ export default function StockMain() {
   };
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://${API_WS}/ws/main`);
+    const ws = new WebSocket(`wss://${API_WS}/ws/main`);
     setWsRef(ws);
 
     ws.onopen = () => {
