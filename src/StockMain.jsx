@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import Chatbot from "./components/Chatbot";
 
 export default function StockMain() {
   const [stocks, setStocks] = useState([]);
@@ -190,8 +191,17 @@ export default function StockMain() {
           ))}
         </div>
       </div>
+      
+      <Chatbot />
+
+
+
+
     </div>
   );
+
+
+  
 }
 
 function StockChart({ stock, color }) {
